@@ -2,7 +2,7 @@
 
 <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/monadoid/cubby-starter"><img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare"/></a>
 
-a cloudflare worker starter template that combines ai chat agents with cubby integration for personal memory search and device automation.
+a cloudflare worker starter template that combines ai chat agents with cubby integration!
 
 ## features
 
