@@ -20,7 +20,7 @@ a cloudflare worker starter template that combines ai chat agents with cubby int
 
 - cloudflare account
 - openai api key ([get one here](https://platform.openai.com/api-keys))
-- cubby account and credentials ([get them at cubby.sh/dashboard](https://cubby.sh/dashboard))
+- cubby credentials (get them by running: `curl -fsSL https://cubby.sh/install.sh | sh`)
 
 ## quick start
 
@@ -43,25 +43,31 @@ cd cubby-starter
 pnpm install
 ```
 
-3. create your `.dev.vars` file:
+3. get your cubby credentials:
+```bash
+curl -fsSL https://cubby.sh/install.sh | sh
+```
+this will provide you with a `CLIENT_ID` and `CLIENT_SECRET`
+
+4. create your `.dev.vars` file:
 ```bash
 cp .dev.vars.example .dev.vars
 ```
 
-4. edit `.dev.vars` and add your credentials:
+5. edit `.dev.vars` and add your credentials:
 ```env
 OPENAI_API_KEY=sk-...
 CUBBY_API_BASE_URL=https://api.cubby.sh
-CUBBY_CLIENT_ID=your-client-id
-CUBBY_CLIENT_SECRET=your-client-secret
+CUBBY_CLIENT_ID=your-client-id-from-step-3
+CUBBY_CLIENT_SECRET=your-client-secret-from-step-3
 ```
 
-5. run locally:
+6. run locally:
 ```bash
 pnpm start
 ```
 
-6. visit `http://localhost:8787` and start chatting!
+7. visit `http://localhost:8787` and start chatting!
 
 ## using cubby tools
 

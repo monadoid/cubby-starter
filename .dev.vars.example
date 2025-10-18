@@ -1,22 +1,11 @@
-# OpenAI Configuration
 OPENAI_API_KEY=sk-...
 
 # Cubby Configuration
-# Get credentials at https://cubby.sh/dashboard
+# Step 1: Run the cubby script to get your credentials:
+# curl -fsSL https://cubby.sh/install.sh | sh
+# This will provide you with a CLIENT_ID and CLIENT_SECRET
+# Step 2: Put those credentials below along with your OpenAI API key
+
 CUBBY_API_BASE_URL=https://api.cubby.sh
 CUBBY_CLIENT_ID=your-client-id
 CUBBY_CLIENT_SECRET=your-client-secret
-
-# Stytch Authentication (if using Stytch auth)
-STYTCH_PROJECT_ID=your_stytch_project_id
-STYTCH_SECRET=your_stytch_secret
-
-# Cloudflare (if using Cloudflare APIs)
-CLOUDFLARE_API_TOKEN=your_cloudflare_api_token
-CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
-
-# Database (if using database)
-DATABASE_URL=your_database_url_here
-
-# MCP Authentication (if using MCP)
-MCP_AUTH_SECRET=your_mcp_auth_secret
