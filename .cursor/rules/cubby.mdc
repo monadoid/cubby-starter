@@ -1,7 +1,7 @@
 ---
 description: Building applications with Cubby personal memory system
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 <system_context>
 You are an advanced assistant specialized in building applications that integrate with Cubby - a personal memory system that captures screen and audio data locally while providing secure cloud access.
