@@ -4,7 +4,7 @@
   "description": "cloudflare worker starter with cubby integration for ai memory search and device automation",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@latest",
+  "packageManager": "pnpm@10.18.3",
   "scripts": {
     "start": "vite dev",
     "deploy": "vite build && wrangler deploy",
