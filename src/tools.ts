@@ -8,6 +8,24 @@ import { z } from "zod/v3";
 import type { Chat } from "./server";
 import { getCurrentAgent } from "agents";
 import { scheduleSchema } from "agents/schedule";
+import { createClient } from "@cubby/js";
+
+/**
+ * Helper to initialize Cubby client with credentials from environment
+ */
+function getCubbyClient() {
+  const baseUrl = process.env.CUBBY_API_BASE_URL;
+  const clientId = process.env.CUBBY_CLIENT_ID;
+  const clientSecret = process.env.CUBBY_CLIENT_SECRET;
+
+  if (!baseUrl || !clientId || !clientSecret) {
+    throw new Error(
+      "cubby credentials not configured. set CUBBY_API_BASE_URL, CUBBY_CLIENT_ID, and CUBBY_CLIENT_SECRET"
+    );
+  }
+
+  return createClient({ baseUrl, clientId, clientSecret });
+}
 
 /**
  * Weather information tool that requires human confirmation
@@ -102,10 +120,134 @@ const cancelScheduledTask = tool({
       await agent!.cancelSchedule(taskId);
       return `Task ${taskId} has been successfully canceled.`;
     } catch (error) {
-      console.error("Error canceling scheduled task", error);
-      return `Error canceling task ${taskId}: ${error}`;
+      console.error("error canceling scheduled task", error);
+      return `error canceling task ${taskId}: ${error}`;
     }
   }
+});
+
+/**
+ * Cubby tool to search user's screen and audio history
+ * Executes automatically - searches are read-only and low-risk
+ */
+const searchCubby = tool({
+  description:
+    "search the user's screen and audio history captured by cubby. use this to find information from their past activity, meetings, conversations, or anything they've seen on their screen.",
+  inputSchema: z.object({
+    query: z.string().describe("search query"),
+    limit: z.number().optional().default(5).describe("number of results"),
+    contentType: z
+      .enum(["ocr", "audio", "ui", "all"])
+      .optional()
+      .default("all")
+      .describe("type of content to search")
+  }),
+  execute: async ({ query, limit, contentType }) => {
+    try {
+      const client = getCubbyClient();
+
+      console.log(`searching cubby: "${query}" (limit: ${limit}, type: ${contentType})`);
+
+      // list devices and use the first one
+      const devicesResponse = await client.listDevices();
+      if (!devicesResponse?.devices?.length) {
+        return "no cubby devices found. user needs to enroll a device first.";
+      }
+
+      const deviceId = String(devicesResponse.devices[0].id);
+      client.setDeviceId(deviceId);
+
+      const results = await client.search({
+        q: query,
+        limit,
+        content_type: contentType
+      });
+
+      if (!results?.data?.length) {
+        return `no results found for "${query}"`;
+      }
+
+      const formatted = results.data
+        .map((item, idx) => {
+          const timestamp = item.content.timestamp || "unknown time";
+          const text = item.content.text || "";
+          const type = item.type || "unknown";
+          return `${idx + 1}. [${type}] ${timestamp}\n   ${text.substring(0, 200)}${text.length > 200 ? "..." : ""}`;
+        })
+        .join("\n\n");
+
+      return `found ${results.pagination.total} results:\n\n${formatted}`;
+    } catch (error) {
+      console.error("error searching cubby:", error);
+      return `error searching cubby: ${error}`;
+    }
+  }
+});
+
+/**
+ * Cubby tool to send desktop notification to user's device
+ * Executes automatically - notifications are helpful and low-risk
+ */
+const notifyCubby = tool({
+  description:
+    "send a desktop notification to the user's device via cubby. use this to alert them about important information, reminders, or task completions.",
+  inputSchema: z.object({
+    title: z.string().describe("notification title"),
+    body: z.string().describe("notification body text")
+  }),
+  execute: async ({ title, body }) => {
+    try {
+      const client = getCubbyClient();
+
+      console.log(`sending cubby notification: ${title}`);
+
+      // list devices and use the first one
+      const devicesResponse = await client.listDevices();
+      if (!devicesResponse?.devices?.length) {
+        return "no cubby devices found. user needs to enroll a device first.";
+      }
+
+      const deviceId = String(devicesResponse.devices[0].id);
+      client.setDeviceId(deviceId);
+
+      await client.notify({ title, body });
+
+      return `notification sent: "${title}"`;
+    } catch (error) {
+      console.error("error sending cubby notification:", error);
+      return `error sending notification: ${error}`;
+    }
+  }
+});
+
+/**
+ * Cubby tool to open an application on user's device
+ * Requires confirmation - opening apps is a sensitive action
+ */
+const openApplication = tool({
+  description:
+    "open an application on the user's device. examples: 'slack', 'visual studio code', 'chrome'",
+  inputSchema: z.object({
+    appName: z.string().describe("name of the application to open")
+  })
+  // no execute function = requires human confirmation
+});
+
+/**
+ * Cubby tool to open a URL in user's browser
+ * Requires confirmation - opening URLs is a sensitive action
+ */
+const openUrl = tool({
+  description:
+    "open a url in the user's web browser. optionally specify which browser to use.",
+  inputSchema: z.object({
+    url: z.string().describe("url to open (must include https:// or http://)"),
+    browser: z
+      .string()
+      .optional()
+      .describe("browser name (optional, e.g. 'safari', 'chrome')")
+  })
+  // no execute function = requires human confirmation
 });
 
 /**
@@ -117,7 +259,12 @@ export const tools = {
   getLocalTime,
   scheduleTask,
   getScheduledTasks,
-  cancelScheduledTask
+  cancelScheduledTask,
+  // cubby tools
+  searchCubby,
+  notifyCubby,
+  openApplication,
+  openUrl
 } satisfies ToolSet;
 
 /**
@@ -127,7 +274,53 @@ export const tools = {
  */
 export const executions = {
   getWeatherInformation: async ({ city }: { city: string }) => {
-    console.log(`Getting weather information for ${city}`);
-    return `The weather in ${city} is sunny`;
+    console.log(`getting weather information for ${city}`);
+    return `the weather in ${city} is sunny`;
+  },
+  openApplication: async ({ appName }: { appName: string }) => {
+    try {
+      const client = getCubbyClient();
+
+      console.log(`opening application: ${appName}`);
+
+      // list devices and use the first one
+      const devicesResponse = await client.listDevices();
+      if (!devicesResponse?.devices?.length) {
+        return "no cubby devices found. user needs to enroll a device first.";
+      }
+
+      const deviceId = String(devicesResponse.devices[0].id);
+      client.setDeviceId(deviceId);
+
+      await client.device.openApplication(appName);
+
+      return `opened application: ${appName}`;
+    } catch (error) {
+      console.error("error opening application:", error);
+      return `error opening application: ${error}`;
+    }
+  },
+  openUrl: async ({ url, browser }: { url: string; browser?: string }) => {
+    try {
+      const client = getCubbyClient();
+
+      console.log(`opening url: ${url}${browser ? ` in ${browser}` : ""}`);
+
+      // list devices and use the first one
+      const devicesResponse = await client.listDevices();
+      if (!devicesResponse?.devices?.length) {
+        return "no cubby devices found. user needs to enroll a device first.";
+      }
+
+      const deviceId = String(devicesResponse.devices[0].id);
+      client.setDeviceId(deviceId);
+
+      await client.device.openUrl(url, browser);
+
+      return `opened url: ${url}${browser ? ` in ${browser}` : ""}`;
+    } catch (error) {
+      console.error("error opening url:", error);
+      return `error opening url: ${error}`;
+    }
   }
 };

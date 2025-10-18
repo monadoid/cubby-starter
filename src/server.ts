@@ -61,12 +61,18 @@ export class Chat extends AIChatAgent<Env> {
         });
 
         const result = streamText({
-          system: `You are a helpful assistant that can do various tasks... 
+          system: `you are a helpful assistant that can do various tasks.
+
+you have access to the user's cubby - a personal memory system that captures their screen and audio. you can:
+- search their screen and audio history to find past information
+- send them desktop notifications
+- open applications and urls on their device (with their permission)
 
 ${getSchedulePrompt({ date: new Date() })}
 
-If the user asks to schedule a task, use the schedule tool to schedule the task.
-`,
+if the user asks to schedule a task, use the schedule tool.
+if they want to search their past activity or memory, use searchcubby.
+be helpful and proactive. use lowercase in your responses for a casual, friendly tone.`,
 
           messages: convertToModelMessages(processedMessages),
           model,

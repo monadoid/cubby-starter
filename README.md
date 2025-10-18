@@ -1,238 +1,223 @@
-# 🤖 Chat Agent Starter Kit
+# cubby + cloudflare agents starter
 
-![npm i agents command](./npm-agents-banner.svg)
+<a href="https://deploy.workers.cloudflare.com/?url=https://github.com/yourusername/cubby-starter"><img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare"/></a>
 
-<a href="https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/agents-starter"><img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare"/></a>
+a cloudflare worker starter template that combines ai chat agents with cubby integration for personal memory search and device automation.
 
-A starter template for building AI-powered chat agents using Cloudflare's Agent platform, powered by [`agents`](https://www.npmjs.com/package/agents). This project provides a foundation for creating interactive chat experiences with AI, complete with a modern UI and tool integration capabilities.
+## features
 
-## Features
+- 💬 ai chat agent powered by openai gpt-4
+- 🧠 cubby integration: search screen and audio history
+- 🔔 send desktop notifications to your devices
+- 🚀 open applications and urls on your devices (with confirmation)
+- 📅 task scheduling (one-time, delayed, and recurring via cron)
+- 🛠️ human-in-the-loop tool confirmations for sensitive operations
+- 🌓 dark/light theme ui
+- ⚡️ real-time streaming responses
+- 💾 durable objects for chat persistence
 
-- 💬 Interactive chat interface with AI
-- 🛠️ Built-in tool system with human-in-the-loop confirmation
-- 📅 Advanced task scheduling (one-time, delayed, and recurring via cron)
-- 🌓 Dark/Light theme support
-- ⚡️ Real-time streaming responses
-- 🔄 State management and chat history
-- 🎨 Modern, responsive UI
+## prerequisites
 
-## Prerequisites
+- cloudflare account
+- openai api key ([get one here](https://platform.openai.com/api-keys))
+- cubby account and credentials ([get them at cubby.sh/dashboard](https://cubby.sh/dashboard))
 
-- Cloudflare account
-- OpenAI API key
+## quick start
 
-## Quick Start
+### option 1: deploy to cloudflare (one-click)
 
-1. Create a new project:
+1. click the "deploy to cloudflare" button above
+2. follow the prompts to create a new repository and deploy
+3. add your secrets via wrangler (see production deployment below)
 
+### option 2: clone and deploy manually
+
+1. clone this repository:
 ```bash
-npx create-cloudflare@latest --template cloudflare/agents-starter
+git clone https://github.com/yourusername/cubby-starter
+cd cubby-starter
 ```
 
-2. Install dependencies:
-
+2. install dependencies:
 ```bash
-npm install
+pnpm install
 ```
 
-3. Set up your environment:
+3. create your `.dev.vars` file:
+```bash
+cp .dev.vars.example .dev.vars
+```
 
-Create a `.dev.vars` file:
-
+4. edit `.dev.vars` and add your credentials:
 ```env
-OPENAI_API_KEY=your_openai_api_key
+OPENAI_API_KEY=sk-...
+CUBBY_API_BASE_URL=https://api.cubby.sh
+CUBBY_CLIENT_ID=your-client-id
+CUBBY_CLIENT_SECRET=your-client-secret
 ```
 
-4. Run locally:
+5. run locally:
+```bash
+pnpm start
+```
+
+6. visit `http://localhost:8787` and start chatting!
+
+## using cubby tools
+
+once running, you can ask the agent to:
+
+- **search your memory**: "search my screen for project deadline"
+- **send notifications**: "notify me that the build is complete"
+- **open apps**: "open slack" (requires confirmation)
+- **open urls**: "open github.com" (requires confirmation)
+- **schedule tasks**: "remind me in 30 minutes to check email"
+
+the agent has access to your cubby personal memory system and can search through your screen captures and audio transcriptions.
+
+## production deployment
+
+deploy to cloudflare workers:
 
 ```bash
-npm start
+pnpm deploy
 ```
 
-5. Deploy:
+then set your production secrets:
 
 ```bash
-npm run deploy
+wrangler secret put OPENAI_API_KEY
+wrangler secret put CUBBY_API_BASE_URL
+wrangler secret put CUBBY_CLIENT_ID
+wrangler secret put CUBBY_CLIENT_SECRET
 ```
 
-## Project Structure
+## project structure
 
 ```
 ├── src/
-│   ├── app.tsx        # Chat UI implementation
-│   ├── server.ts      # Chat agent logic
-│   ├── tools.ts       # Tool definitions
-│   ├── utils.ts       # Helper functions
-│   └── styles.css     # UI styling
+│   ├── app.tsx              # chat ui (react)
+│   ├── server.ts            # chat agent logic
+│   ├── tools.ts             # tool definitions (weather, cubby, scheduling)
+│   ├── components/          # ui components
+│   └── ...
+├── wrangler.jsonc           # cloudflare worker config
+├── package.json             # dependencies
+└── .dev.vars.example        # environment variables template
 ```
 
-## Customization Guide
+## customization
 
-### Adding New Tools
+### adding new tools
 
-Add new tools in `tools.ts` using the tool builder:
-
-```ts
-// Example of a tool that requires confirmation
-const searchDatabase = tool({
-  description: "Search the database for user records",
-  parameters: z.object({
-    query: z.string(),
-    limit: z.number().optional()
-  })
-  // No execute function = requires confirmation
-});
-
-// Example of an auto-executing tool
-const getCurrentTime = tool({
-  description: "Get current server time",
-  parameters: z.object({}),
-  execute: async () => new Date().toISOString()
-});
-
-// Scheduling tool implementation
-const scheduleTask = tool({
-  description:
-    "schedule a task to be executed at a later time. 'when' can be a date, a delay in seconds, or a cron pattern.",
-  parameters: z.object({
-    type: z.enum(["scheduled", "delayed", "cron"]),
-    when: z.union([z.number(), z.string()]),
-    payload: z.string()
-  }),
-  execute: async ({ type, when, payload }) => {
-    // ... see the implementation in tools.ts
-  }
-});
-```
-
-To handle tool confirmations, add execution functions to the `executions` object:
+edit `src/tools.ts` to add new tools:
 
 ```typescript
-export const executions = {
-  searchDatabase: async ({
-    query,
-    limit
-  }: {
-    query: string;
-    limit?: number;
-  }) => {
-    // Implementation for when the tool is confirmed
-    const results = await db.search(query, limit);
-    return results;
+// auto-executing tool (no confirmation needed)
+const myAutoTool = tool({
+  description: "does something automatically",
+  inputSchema: z.object({
+    param: z.string()
+  }),
+  execute: async ({ param }) => {
+    // your implementation
+    return "result";
   }
-  // Add more execution handlers for other tools that require confirmation
+});
+
+// confirmation-required tool
+const mySensitiveTool = tool({
+  description: "does something that needs approval",
+  inputSchema: z.object({
+    param: z.string()
+  })
+  // no execute = requires confirmation
+});
+
+// add to tools export
+export const tools = {
+  // ... existing tools
+  myAutoTool,
+  mySensitiveTool
+};
+
+// add execution handler for confirmation-required tools
+export const executions = {
+  // ... existing executions
+  mySensitiveTool: async ({ param }: { param: string }) => {
+    // implementation after user confirms
+    return "result";
+  }
 };
 ```
 
-Tools can be configured in two ways:
+then update `src/app.tsx` to add sensitive tools to the confirmation list:
 
-1. With an `execute` function for automatic execution
-2. Without an `execute` function, requiring confirmation and using the `executions` object to handle the confirmed action. NOTE: The keys in `executions` should match `toolsRequiringConfirmation` in `app.tsx`.
-
-### Use a different AI model provider
-
-The starting [`server.ts`](https://github.com/cloudflare/agents-starter/blob/main/src/server.ts) implementation uses the [`ai-sdk`](https://sdk.vercel.ai/docs/introduction) and the [OpenAI provider](https://sdk.vercel.ai/providers/ai-sdk-providers/openai), but you can use any AI model provider by:
-
-1. Installing an alternative AI provider for the `ai-sdk`, such as the [`workers-ai-provider`](https://sdk.vercel.ai/providers/community-providers/cloudflare-workers-ai) or [`anthropic`](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic) provider:
-2. Replacing the AI SDK with the [OpenAI SDK](https://github.com/openai/openai-node)
-3. Using the Cloudflare [Workers AI + AI Gateway](https://developers.cloudflare.com/ai-gateway/providers/workersai/#workers-binding) binding API directly
-
-For example, to use the [`workers-ai-provider`](https://sdk.vercel.ai/providers/community-providers/cloudflare-workers-ai), install the package:
-
-```sh
-npm install workers-ai-provider
+```typescript
+const toolsRequiringConfirmation: (keyof typeof tools)[] = [
+  "getWeatherInformation",
+  "openApplication",
+  "openUrl",
+  "mySensitiveTool" // add your new tool here
+];
 ```
 
-Add an `ai` binding to `wrangler.jsonc`:
+### customizing the ui
 
-```jsonc
-// rest of file
-  "ai": {
-    "binding": "AI"
-  }
-// rest of file
+- modify theme colors in `src/styles.css`
+- edit components in `src/components/`
+- adjust chat interface in `src/app.tsx`
+
+### customizing the agent
+
+edit the system prompt in `src/server.ts`:
+
+```typescript
+system: `you are a helpful assistant that can do various tasks.
+
+you have access to the user's cubby - a personal memory system...
+
+// add your custom instructions here
+`,
 ```
 
-Replace the `@ai-sdk/openai` import and usage with the `workers-ai-provider`:
+## cubby setup
 
-```diff
-// server.ts
-// Change the imports
-- import { openai } from "@ai-sdk/openai";
-+ import { createWorkersAI } from 'workers-ai-provider';
+to use cubby features, you need:
 
-// Create a Workers AI instance
-+ const workersai = createWorkersAI({ binding: env.AI });
+1. a cubby account ([sign up at cubby.sh](https://cubby.sh))
+2. the cubby desktop app running and capturing your screen/audio
+3. at least one enrolled device
+4. api credentials from the [cubby dashboard](https://cubby.sh/dashboard)
 
-// Use it when calling the streamText method (or other methods)
-// from the ai-sdk
-- const model = openai("gpt-4o-2024-11-20");
-+ const model = workersai("@cf/deepseek-ai/deepseek-r1-distill-qwen-32b")
+cubby captures your screen and audio locally, then syncs to the cloud so you can search through your past activity.
+
+## development
+
+```bash
+# start dev server with hot reload
+pnpm start
+
+# run type checking
+pnpm check
+
+# format code
+pnpm format
+
+# run tests
+pnpm test
+
+# generate wrangler types
+pnpm types
 ```
 
-Commit your changes and then run the `agents-starter` as per the rest of this README.
+## links
 
-### Modifying the UI
+- **cubby docs**: [cubby.sh/docs](https://cubby.sh/docs)
+- **cubby sdk**: [@cubby/js on npm](https://npmjs.com/@cubby/js)
+- **cloudflare agents**: [developers.cloudflare.com/agents](https://developers.cloudflare.com/agents/)
+- **cloudflare workers**: [developers.cloudflare.com/workers](https://developers.cloudflare.com/workers/)
 
-The chat interface is built with React and can be customized in `app.tsx`:
-
-- Modify the theme colors in `styles.css`
-- Add new UI components in the chat container
-- Customize message rendering and tool confirmation dialogs
-- Add new controls to the header
-
-### Example Use Cases
-
-1. **Customer Support Agent**
-   - Add tools for:
-     - Ticket creation/lookup
-     - Order status checking
-     - Product recommendations
-     - FAQ database search
-
-2. **Development Assistant**
-   - Integrate tools for:
-     - Code linting
-     - Git operations
-     - Documentation search
-     - Dependency checking
-
-3. **Data Analysis Assistant**
-   - Build tools for:
-     - Database querying
-     - Data visualization
-     - Statistical analysis
-     - Report generation
-
-4. **Personal Productivity Assistant**
-   - Implement tools for:
-     - Task scheduling with flexible timing options
-     - One-time, delayed, and recurring task management
-     - Task tracking with reminders
-     - Email drafting
-     - Note taking
-
-5. **Scheduling Assistant**
-   - Build tools for:
-     - One-time event scheduling using specific dates
-     - Delayed task execution (e.g., "remind me in 30 minutes")
-     - Recurring tasks using cron patterns
-     - Task payload management
-     - Flexible scheduling patterns
-
-Each use case can be implemented by:
-
-1. Adding relevant tools in `tools.ts`
-2. Customizing the UI for specific interactions
-3. Extending the agent's capabilities in `server.ts`
-4. Adding any necessary external API integrations
-
-## Learn More
-
-- [`agents`](https://github.com/cloudflare/agents/blob/main/packages/agents/README.md)
-- [Cloudflare Agents Documentation](https://developers.cloudflare.com/agents/)
-- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
-
-## License
+## license
 
 MIT

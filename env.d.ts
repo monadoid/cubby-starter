@@ -4,6 +4,10 @@ declare namespace Cloudflare {
 	interface Env {
 		Chat: DurableObjectNamespace<import("./src/server").Chat>;
 		AI: Ai;
+		// Cubby configuration
+		CUBBY_API_BASE_URL: string;
+		CUBBY_CLIENT_ID: string;
+		CUBBY_CLIENT_SECRET: string;
 	}
 }
 interface Env extends Cloudflare.Env {}
