@@ -1,6 +1,6 @@
 {
   "name": "cubby-starter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "cloudflare worker starter with cubby integration for ai memory search and device automation",
   "type": "module",
   "private": true,
